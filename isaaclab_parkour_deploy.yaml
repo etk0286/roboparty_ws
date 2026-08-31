@@ -1,0 +1,70 @@
+policy:
+  depth_encoder_path: exported/2026-08-25_17-32-06_amp_parkour_add_terrain_good_at_stage/exported/0-depth_encoder.onnx
+  actor_path: exported/2026-08-25_17-32-06_amp_parkour_add_terrain_good_at_stage/exported/actor.onnx
+  providers: [CPUExecutionProvider]
+
+control:
+  dt: 0.005
+  decimation: 4
+  stand_duration: 3.0
+  sit_duration: 2.0
+  kps: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
+  kds: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  damping_kd: 2.0
+  action_scale: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+  # SDK order: FL/FR/RL/RR, each hip-thigh-calf.
+  default_angles: [0.1, 0.4, -1.0, -0.1, 0.4, -1.0, 0.1, -0.4, 1.0, -0.1, -0.4, 1.0]
+  sit_angles: [0.0, 1.6, -2.8, 0.0, 1.6, -2.8, 0.0, -1.6, 2.8, 0.0, -1.6, 2.8]
+  sdk_to_policy: [0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11]
+  policy_to_sdk: [0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11]
+
+observations:
+  history_length: 8
+  angular_velocity_scale: 0.25
+  joint_velocity_scale: 0.05
+  command_scale: [1.0, 1.0, 1.0]
+  command_limits: [0.35, 0.0, 1.0]
+  # Maximum command change per second: [vx, vy, yaw]. Matches sim2sim.
+  command_ramp_per_s: [2.0, 2.0, 3.0]
+
+depth:
+  # Metric depth used by preprocessing and the ONNX policy.
+  topic: /camera0/realsense_splitter_node/output/depth
+  
+
+  # mono8 image shown in the operator control window (visualization only).
+  display_topic: /bigreddog/depth_original_grayscale
+  wait_timeout: 10.0
+  stale_timeout: 0.5
+  input_width: 640
+  input_height: 480
+  # Rectified RealSense projection values used by the current camera stream.
+  projection: [388.1922302246094, 0.0, 321.048583984375, 0.0, 0.0, 388.1922302246094, 242.24359130859375, 0.0, 0.0, 0.0, 1.0, 0.0]
+  train_width: 64
+  train_height: 48
+  train_hfov_deg: 89.51
+  train_vfov_deg: 58.29
+  crop: [30, 0, 16, 16]
+  encoder_height: 18
+  encoder_width: 32
+  min_m: 0.0
+  max_m: 2.5
+  history_length: 37
+  history_indices: [1, 6, 11, 16, 21, 26, 31, 36]
+
+safety:
+  low_state_wait_timeout: 5.0
+  low_state_stale_timeout: 0.25
+  max_tilt_deg: 55.0
+  # null matches sim2sim: use the raw actor output. Physical joint limits below
+  # remain active as the final safety boundary.
+  action_clip: null
+  max_target_delta: null
+  joint_lower: [-0.611, -2.583, -2.792, -0.436, -2.583, -2.792, -0.611, -2.286, -2.809, -0.436, -2.286, -2.809]
+  joint_upper: [0.436, 2.286, 2.809, 0.611, 2.286, 2.809, 0.436, 2.583, 2.792, 0.611, 2.583, 2.792]
+
+dds:
+  domain: 1
+  interface: eno1
+  lowcmd_topic: rt/lowcmd
+  lowstate_topic: rt/lowstate

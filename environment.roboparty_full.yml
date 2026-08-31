@@ -1,0 +1,26 @@
+name: roboparty_full
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - setuptools
+  - tk
+  - pip:
+      # NumPy 1.x is required by ROS 2 Humble's cv_bridge binary.
+      - numpy<2
+      - opencv-python<4.12
+      - onnxruntime
+      - Pillow
+      - PyYAML
+      - pytest
+      - matplotlib
+      - mujoco
+      - scipy
+      - tqdm
+      - pynput
+      - mujoco-python-viewer
+      # Unitree SDK runtime; build with CYCLONEDDS_HOME set as documented in
+      # PARKOUR_DEPLOY.md, then install the local unitree_sdk2_python checkout.
+      - cyclonedds==0.10.2
+      - rich-click

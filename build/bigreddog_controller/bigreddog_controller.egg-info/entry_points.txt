@@ -1,0 +1,4 @@
+[console_scripts]
+depth_encoder_tester = bigreddog_controller.controller:main
+depth_viewer = bigreddog_controller.value_check:main
+

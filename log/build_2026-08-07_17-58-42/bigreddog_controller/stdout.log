@@ -1,0 +1,31 @@
+running develop
+Removing /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog-controller.egg-link (link to .)
+running egg_info
+writing ../../build/bigreddog_controller/bigreddog_controller.egg-info/PKG-INFO
+writing dependency_links to ../../build/bigreddog_controller/bigreddog_controller.egg-info/dependency_links.txt
+writing entry points to ../../build/bigreddog_controller/bigreddog_controller.egg-info/entry_points.txt
+writing requirements to ../../build/bigreddog_controller/bigreddog_controller.egg-info/requires.txt
+writing top-level names to ../../build/bigreddog_controller/bigreddog_controller.egg-info/top_level.txt
+reading manifest file '../../build/bigreddog_controller/bigreddog_controller.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/bigreddog_controller/bigreddog_controller.egg-info/SOURCES.txt'
+running build
+running build_py
+copying bigreddog_controller/value_check.py -> /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller
+running install
+running install_lib
+creating /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller
+copying /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller/__init__.py -> /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller
+copying /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller/value_check.py -> /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller
+copying /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller/controller.py -> /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller
+byte-compiling /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller/__init__.py to __init__.cpython-310.pyc
+byte-compiling /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller/value_check.py to value_check.cpython-310.pyc
+byte-compiling /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller/controller.py to controller.cpython-310.pyc
+running install_data
+copying resource/bigreddog_controller -> /home/spot/roboparty_ws/install/bigreddog_controller/share/ament_index/resource_index/packages
+copying package.xml -> /home/spot/roboparty_ws/install/bigreddog_controller/share/bigreddog_controller
+running install_egg_info
+Copying ../../build/bigreddog_controller/bigreddog_controller.egg-info to /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller-0.0.0-py3.10.egg-info
+running install_scripts
+Installing depth_viewer script to /home/spot/roboparty_ws/install/bigreddog_controller/lib/bigreddog_controller
+writing list of installed files to '/home/spot/roboparty_ws/build/bigreddog_controller/install.log'

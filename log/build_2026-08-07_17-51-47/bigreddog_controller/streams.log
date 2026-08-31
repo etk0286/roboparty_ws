@@ -1,0 +1,19 @@
+[1.018s] Invoking command in '/home/spot/roboparty_ws/build/bigreddog_controller': PYTHONPATH=/home/spot/roboparty_ws/build/bigreddog_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/spot/roboparty_ws/build/bigreddog_controller/build --no-deps symlink_data --force
+[1.407s] running develop
+[1.654s] running egg_info
+[1.655s] writing bigreddog_controller.egg-info/PKG-INFO
+[1.655s] writing dependency_links to bigreddog_controller.egg-info/dependency_links.txt
+[1.655s] writing entry points to bigreddog_controller.egg-info/entry_points.txt
+[1.656s] writing requirements to bigreddog_controller.egg-info/requires.txt
+[1.656s] writing top-level names to bigreddog_controller.egg-info/top_level.txt
+[1.657s] reading manifest file 'bigreddog_controller.egg-info/SOURCES.txt'
+[1.659s] writing manifest file 'bigreddog_controller.egg-info/SOURCES.txt'
+[1.662s] running build_ext
+[1.662s] Creating /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog-controller.egg-link (link to .)
+[1.664s] Installing depth_viewer script to /home/spot/roboparty_ws/install/bigreddog_controller/lib/bigreddog_controller
+[1.664s] 
+[1.664s] Installed /home/spot/roboparty_ws/build/bigreddog_controller
+[1.664s] running symlink_data
+[1.665s] symbolically linking /home/spot/roboparty_ws/build/bigreddog_controller/resource/bigreddog_controller -> /home/spot/roboparty_ws/install/bigreddog_controller/share/ament_index/resource_index/packages
+[1.665s] symbolically linking /home/spot/roboparty_ws/build/bigreddog_controller/package.xml -> /home/spot/roboparty_ws/install/bigreddog_controller/share/bigreddog_controller
+[1.724s] Invoked command in '/home/spot/roboparty_ws/build/bigreddog_controller' returned '0': PYTHONPATH=/home/spot/roboparty_ws/build/bigreddog_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/spot/roboparty_ws/build/bigreddog_controller/build --no-deps symlink_data --force

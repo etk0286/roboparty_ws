@@ -1,0 +1,22 @@
+running egg_info
+writing ../../build/bigreddog_controller/bigreddog_controller.egg-info/PKG-INFO
+writing dependency_links to ../../build/bigreddog_controller/bigreddog_controller.egg-info/dependency_links.txt
+writing entry points to ../../build/bigreddog_controller/bigreddog_controller.egg-info/entry_points.txt
+writing requirements to ../../build/bigreddog_controller/bigreddog_controller.egg-info/requires.txt
+writing top-level names to ../../build/bigreddog_controller/bigreddog_controller.egg-info/top_level.txt
+reading manifest file '../../build/bigreddog_controller/bigreddog_controller.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/bigreddog_controller/bigreddog_controller.egg-info/SOURCES.txt'
+running build
+running build_py
+copying bigreddog_controller/controller.py -> /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller
+running install
+running install_lib
+copying /home/spot/roboparty_ws/build/bigreddog_controller/build/lib/bigreddog_controller/controller.py -> /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller
+byte-compiling /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller/controller.py to controller.cpython-310.pyc
+running install_data
+running install_egg_info
+removing '/home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/bigreddog_controller/bigreddog_controller.egg-info to /home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages/bigreddog_controller-0.0.0-py3.10.egg-info
+running install_scripts
+writing list of installed files to '/home/spot/roboparty_ws/build/bigreddog_controller/install.log'

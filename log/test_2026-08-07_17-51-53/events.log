@@ -1,0 +1,99 @@
+[0.000000] (-) TimerEvent: {}
+[0.000336] (bigreddog_controller) JobQueued: {'identifier': 'bigreddog_controller', 'dependencies': OrderedDict([('bigreddog_controller', '/home/spot/roboparty_ws/install/bigreddog_controller')])}
+[0.000887] (bigreddog_controller) JobStarted: {'identifier': 'bigreddog_controller'}
+[0.099465] (-) TimerEvent: {}
+[0.199751] (-) TimerEvent: {}
+[0.300049] (-) TimerEvent: {}
+[0.400356] (-) TimerEvent: {}
+[0.415092] (bigreddog_controller) Command: {'cmd': ['/usr/bin/python3', '-m', 'pytest'], 'cwd': '/home/spot/roboparty_ws/src/bigreddog_controller', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'LESSOPEN': '| /usr/bin/lesspipe %s', 'VSCODE_CWD': '/home/spot', 'VSCODE_ESM_ENTRYPOINT': 'vs/workbench/api/node/extensionHostProcess', 'CODEX_CI': '1', 'C_INCLUDE_PATH': '/usr/local/cuda-12.6/targets/aarch64-linux/include', 'USER': 'spot', 'CODEX_INTERNAL_ORIGINATOR_OVERRIDE': 'codex_vscode', 'VSCODE_NLS_CONFIG': '{"userLocale":"en-us","osLocale":"en-us","resolvedLanguage":"en","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","locale":"en-us","availableLanguages":{}}', 'VSCODE_HANDLES_UNCAUGHT_ERRORS': 'true', 'XDG_SESSION_TYPE': 'x11', 'DEBUG': 'release', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda-12.6/lib64:', 'HOME': '/home/spot', 'CHROME_DESKTOP': 'code.desktop', 'CONDA_SHLVL': '0', 'DESKTOP_SESSION': 'ubuntu', 'VSCODE_IPC_HOOK': '/run/user/1000/vscode-65815512-1.11-main.sock', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/code.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'PAGER': 'cat', 'MANAGERPID': '1684', 'LC_CTYPE': 'C.UTF-8', 'SYSTEMD_EXEC_PID': '2474', 'NO_COLOR': '1', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': '', '_CONDA_ROOT': '/home/spot/miniconda3', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '10433', 'CPLUS_INCLUDE_PATH': '/usr/local/cuda-12.6/targets/aarch64-linux/include', 'VSCODE_CRASH_REPORTER_PROCESS_TYPE': 'extensionHost', 'IM_CONFIG_PHASE': '1', 'VSCODE_L10N_BUNDLE_LOCATION': '', 'CODEX_PERMISSION_PROFILE': ':workspace', 'ROS_DISTRO': 'humble', 'GTK_IM_MODULE': 'ibus', 'LOGNAME': 'spot', 'JOURNAL_STREAM': '8:45918', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'RUST_LOG': 'warn', 'USERNAME': 'spot', 'TERM': 'dumb', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'ISAAC_ROS_WS': '/mnt/nova_ssd/workspaces/isaac_ros-dev/', 'FC_FONTATIONS': '1', 'ROS_LOCALHOST_ONLY': '0', 'WINDOWPATH': '2', 'PATH': '/home/spot/.local/bin:/home/spot/.codex/tmp/arg0/codex-arg0MVz6iM:/home/spot/.local/bin:/usr/local/cuda-12.6/bin:/home/spot/miniconda3/condabin:/opt/ros/humble/bin:/usr/local/cuda-12.6/bin:/home/spot/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/spot/.vscode/extensions/openai.chatgpt-26.803.41515-linux-arm64/bin/linux-aarch64', 'SESSION_MANAGER': 'local/ubuntu:@/tmp/.ICE-unix/2450,unix/ubuntu:/tmp/.ICE-unix/2450', 'INVOCATION_ID': '55eed1a1221e437b9d9451135dd4eda5', 'XDG_MENU_PREFIX': 'gnome-', 'XDG_RUNTIME_DIR': '/run/user/1000', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'CODEX_SANDBOX_NETWORK_DISABLED': '1', 'LANG': 'C.UTF-8', 'XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'TRITON_PTXAS_PATH': '/usr/local/cuda-12.6/bin/ptxas', 'XMODIFIERS': '@im=ibus', 'GH_PAGER': 'cat', 'XDG_SESSION_DESKTOP': 'ubuntu', 'XAUTHORITY': '/run/user/1000/gdm/Xauthority', 'SSH_AGENT_LAUNCHER': 'gnome-keyring', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'AMENT_PREFIX_PATH': '/home/spot/roboparty_ws/install/bigreddog_controller:/opt/ros/humble', 'CONDA_PYTHON_EXE': '/home/spot/miniconda3/bin/python', 'SHELL': '/bin/bash', 'QT_ACCESSIBILITY': '1', 'ELECTRON_RUN_AS_NODE': '1', 'GDMSESSION': 'ubuntu', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'CODEX_THREAD_ID': '019fdb81-0358-7c01-af11-ef31f59c7589', 'GPG_AGENT_INFO': '/run/user/1000/gnupg/S.gpg-agent:0:1', 'GJS_DEBUG_OUTPUT': 'stderr', '_CONDA_EXE': '/home/spot/miniconda3/bin/conda', 'GIT_PAGER': 'cat', 'QT_IM_MODULE': 'ibus', 'PWD': '/home/spot/roboparty_ws/build/bigreddog_controller', 'LC_ALL': 'C.UTF-8', 'CUDA_HOME': '/usr/local/cuda-12.6', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu:/etc/xdg', 'CONDA_EXE': '/home/spot/miniconda3/bin/conda', 'VSCODE_CODE_CACHE_PATH': '/home/spot/.config/Code/CachedData/cfbea10c5ffb233ea9177d34726e6056e89913dc', 'XDG_DATA_DIRS': '/usr/share/ubuntu:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/spot/roboparty_ws/build/bigreddog_controller:/home/spot/roboparty_ws/install/bigreddog_controller/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'CPATH': '/usr/local/cuda-12.6/targets/aarch64-linux/include', 'COLCON': '1', 'VSCODE_PID': '10433', 'PYTHONDONTWRITEBYTECODE': '1', 'PYTEST_ADDOPTS': '--tb=short --junit-xml=/home/spot/roboparty_ws/build/bigreddog_controller/pytest.xml --junit-prefix=bigreddog_controller -o cache_dir=/home/spot/roboparty_ws/build/bigreddog_controller/.pytest_cache'}, 'shell': False}
+[0.500526] (-) TimerEvent: {}
+[0.600920] (-) TimerEvent: {}
+[0.701314] (-) TimerEvent: {}
+[0.801821] (-) TimerEvent: {}
+[0.902131] (-) TimerEvent: {}
+[1.002408] (-) TimerEvent: {}
+[1.102676] (-) TimerEvent: {}
+[1.127086] (bigreddog_controller) StdoutLine: {'line': b'============================= test session starts ==============================\n'}
+[1.127435] (bigreddog_controller) StdoutLine: {'line': b'platform linux -- Python 3.10.12, pytest-6.2.5, py-1.10.0, pluggy-0.13.0\n'}
+[1.127691] (bigreddog_controller) StdoutLine: {'line': b'cachedir: /home/spot/roboparty_ws/build/bigreddog_controller/.pytest_cache\n'}
+[1.127823] (bigreddog_controller) StdoutLine: {'line': b'rootdir: /home/spot/roboparty_ws/src/bigreddog_controller\n'}
+[1.127936] (bigreddog_controller) StdoutLine: {'line': b'plugins: ament-xmllint-0.12.15, ament-flake8-0.12.15, launch-testing-ros-0.19.13, ament-copyright-0.12.15, launch-testing-1.0.14, ament-pep257-0.12.15, ament-lint-0.12.15, colcon-core-0.20.1, cov-3.0.0\n'}
+[1.128044] (bigreddog_controller) StdoutLine: {'line': b'collected 3 items\n'}
+[1.128143] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.135396] (bigreddog_controller) StdoutLine: {'line': b'test/test_copyright.py s                                                 [ 33%]\n'}
+[1.202795] (-) TimerEvent: {}
+[1.303075] (-) TimerEvent: {}
+[1.403402] (-) TimerEvent: {}
+[1.422551] (bigreddog_controller) StdoutLine: {'line': b'test/test_flake8.py F                                                    [ 66%]\n'}
+[1.487913] (bigreddog_controller) StderrLine: {'line': b'=============================== warnings summary ===============================\n'}
+[1.488256] (bigreddog_controller) StderrLine: {'line': b'test/test_flake8.py::test_flake8\n'}
+[1.488382] (bigreddog_controller) StderrLine: {'line': b'test/test_flake8.py::test_flake8\n'}
+[1.488490] (bigreddog_controller) StderrLine: {'line': b'  Warning: SelectableGroups dict interface is deprecated. Use select.\n'}
+[1.488594] (bigreddog_controller) StderrLine: {'line': b'\n'}
+[1.488692] (bigreddog_controller) StderrLine: {'line': b'-- Docs: https://docs.pytest.org/en/stable/warnings.html\n'}
+[1.489141] (bigreddog_controller) StdoutLine: {'line': b'test/test_pep257.py F                                                    [100%]\n'}
+[1.489252] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.489351] (bigreddog_controller) StdoutLine: {'line': b'=================================== FAILURES ===================================\n'}
+[1.489444] (bigreddog_controller) StdoutLine: {'line': b'_________________________________ test_flake8 __________________________________\n'}
+[1.489538] (bigreddog_controller) StdoutLine: {'line': b'test/test_flake8.py:23: in test_flake8\n'}
+[1.489631] (bigreddog_controller) StdoutLine: {'line': b'    assert rc == 0, \\\n'}
+[1.489723] (bigreddog_controller) StdoutLine: {'line': b'E   AssertionError: Found 1 code style errors / warnings:\n'}
+[1.489818] (bigreddog_controller) StdoutLine: {'line': b'E     ./bigreddog_controller/controller.py:498:11: W292 no newline at end of file\n'}
+[1.489933] (bigreddog_controller) StdoutLine: {'line': b'E   assert 1 == 0\n'}
+[1.490029] (bigreddog_controller) StdoutLine: {'line': b'----------------------------- Captured stdout call -----------------------------\n'}
+[1.490121] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.490213] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:498:11: W292 no newline at end of file\n'}
+[1.490305] (bigreddog_controller) StdoutLine: {'line': b'    main()          ^\n'}
+[1.490396] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.490489] (bigreddog_controller) StdoutLine: {'line': b'1     W292 no newline at end of file\n'}
+[1.490579] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.490676] (bigreddog_controller) StdoutLine: {'line': b'7 files checked\n'}
+[1.490768] (bigreddog_controller) StdoutLine: {'line': b'1 errors\n'}
+[1.490860] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.490951] (bigreddog_controller) StdoutLine: {'line': b"'W'-type errors: 1\n"}
+[1.491042] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.491132] (bigreddog_controller) StdoutLine: {'line': b'Checked files:\n'}
+[1.491221] (bigreddog_controller) StdoutLine: {'line': b'\n'}
+[1.491308] (bigreddog_controller) StdoutLine: {'line': b'* ./setup.py\n'}
+[1.491397] (bigreddog_controller) StdoutLine: {'line': b'* ./bigreddog_controller/__init__.py\n'}
+[1.491487] (bigreddog_controller) StdoutLine: {'line': b'* ./bigreddog_controller/value_check.py\n'}
+[1.491579] (bigreddog_controller) StdoutLine: {'line': b'* ./bigreddog_controller/controller.py\n'}
+[1.491667] (bigreddog_controller) StdoutLine: {'line': b'* ./test/test_pep257.py\n'}
+[1.491754] (bigreddog_controller) StdoutLine: {'line': b'* ./test/test_flake8.py\n'}
+[1.491871] (bigreddog_controller) StdoutLine: {'line': b'* ./test/test_copyright.py\n'}
+[1.491966] (bigreddog_controller) StdoutLine: {'line': b'----------------------------- Captured stderr call -----------------------------\n'}
+[1.492056] (bigreddog_controller) StdoutLine: {'line': b'option --max-complexity: please update from optparse string `type=` to argparse callable `type=` -- this will be an error in the future\n'}
+[1.492151] (bigreddog_controller) StdoutLine: {'line': b'_________________________________ test_pep257 __________________________________\n'}
+[1.492243] (bigreddog_controller) StdoutLine: {'line': b'test/test_pep257.py:23: in test_pep257\n'}
+[1.492331] (bigreddog_controller) StdoutLine: {'line': b"    assert rc == 0, 'Found code style errors / warnings'\n"}
+[1.492422] (bigreddog_controller) StdoutLine: {'line': b'E   AssertionError: Found code style errors / warnings\n'}
+[1.492509] (bigreddog_controller) StdoutLine: {'line': b'E   assert 1 == 0\n'}
+[1.492598] (bigreddog_controller) StdoutLine: {'line': b'----------------------------- Captured stdout call -----------------------------\n'}
+[1.492686] (bigreddog_controller) StdoutLine: {'line': b'checking ./bigreddog_controller/__init__.py\n'}
+[1.492776] (bigreddog_controller) StdoutLine: {'line': b'checking ./bigreddog_controller/controller.py\n'}
+[1.492862] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:91 in private method `_load_depth_encoder`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.492955] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:134 in public method `camera_info_callback`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.493047] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:183 in public method `depth_callback`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.493136] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:346 in public method `update_depth_history`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.493249] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:405 in public method `run_depth_encoder`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.493351] (bigreddog_controller) StdoutLine: {'line': b'./bigreddog_controller/controller.py:431 in public method `create_train_depth_remap`: D202: No blank lines allowed after function docstring (found 1)\n'}
+[1.493442] (bigreddog_controller) StdoutLine: {'line': b'checking ./bigreddog_controller/value_check.py\n'}
+[1.493531] (bigreddog_controller) StdoutLine: {'line': b'checking ./setup.py\n'}
+[1.493616] (bigreddog_controller) StdoutLine: {'line': b'checking ./test/test_copyright.py\n'}
+[1.493702] (bigreddog_controller) StdoutLine: {'line': b'checking ./test/test_flake8.py\n'}
+[1.493789] (bigreddog_controller) StdoutLine: {'line': b'checking ./test/test_pep257.py\n'}
+[1.493875] (bigreddog_controller) StdoutLine: {'line': b'checking test/test_copyright.py\n'}
+[1.493966] (bigreddog_controller) StdoutLine: {'line': b'checking test/test_flake8.py\n'}
+[1.494055] (bigreddog_controller) StdoutLine: {'line': b'checking test/test_pep257.py\n'}
+[1.494394] (bigreddog_controller) StdoutLine: {'line': b'6 errors\n'}
+[1.494508] (bigreddog_controller) StdoutLine: {'line': b'- generated xml file: /home/spot/roboparty_ws/build/bigreddog_controller/pytest.xml -\n'}
+[1.494606] (bigreddog_controller) StdoutLine: {'line': b'=========================== short test summary info ============================\n'}
+[1.494702] (bigreddog_controller) StdoutLine: {'line': b'FAILED test/test_flake8.py::test_flake8 - AssertionError: Found 1 code style ...\n'}
+[1.494793] (bigreddog_controller) StdoutLine: {'line': b'FAILED test/test_pep257.py::test_pep257 - AssertionError: Found code style er...\n'}
+[1.494884] (bigreddog_controller) StdoutLine: {'line': b'=================== 2 failed, 1 skipped, 2 warnings in 0.51s ===================\n'}
+[1.503525] (-) TimerEvent: {}
+[1.603859] (-) TimerEvent: {}
+[1.640600] (bigreddog_controller) CommandEnded: {'returncode': 1}
+[1.642806] (bigreddog_controller) TestFailure: {'identifier': 'bigreddog_controller'}
+[1.642998] (bigreddog_controller) JobEnded: {'identifier': 'bigreddog_controller', 'rc': 0}
+[1.644380] (-) EventReactorShutdown: {}
