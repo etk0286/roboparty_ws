@@ -24,6 +24,9 @@ import numpy as np
 import onnxruntime as ort
 import rclpy
 import yaml
+from lowcmd_logger import LowCmdLogger, estimate_acceleration, state_record
+import hashlib
+from dds_health import DDSHealth
 from cv_bridge import CvBridge
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -126,25 +129,6 @@ def projected_gravity_from_wxyz(quaternion: np.ndarray) -> np.ndarray:
     return gravity
 
 
-def ramp_command(
-    current: np.ndarray,
-    target: np.ndarray,
-    rates_per_s: np.ndarray,
-    dt: float,
-) -> np.ndarray:
-    """Move each command axis toward its target with a linear rate limit."""
-    current = np.asarray(current, dtype=np.float32)
-    target = np.asarray(target, dtype=np.float32)
-    rates = np.asarray(rates_per_s, dtype=np.float32)
-    if current.shape != (3,) or target.shape != (3,) or rates.shape != (3,):
-        raise ValueError("Command, target, and ramp rates must each have 3 values")
-    if np.any(rates < 0.0):
-        raise ValueError("Command ramp rates cannot be negative")
-    max_step = rates * float(dt)
-    delta = np.clip(target - current, -max_step, max_step)
-    return np.ascontiguousarray(current + delta, dtype=np.float32)
-
-
 class DepthPreprocessor:
     """Convert a rectified RealSense image into one normalized 18x32 frame."""
 
@@ -221,6 +205,7 @@ class DepthPreprocessor:
                 (self.encoder_width, self.encoder_height),
                 interpolation=cv2.INTER_AREA,
             )
+        processed = cv2.medianBlur(processed, 5)
         processed = cv2.GaussianBlur(processed, (3, 3), sigmaX=1.0)
         processed = np.clip(processed, self.depth_min, self.depth_max)
         processed = (processed - self.depth_min) / (
@@ -243,6 +228,7 @@ class RealSenseDepthNode(Node):
         self._latest_display: np.ndarray | None = None
         self._latest_time = 0.0
         self._frame_count = 0
+        self._latest_metadata = {}
         self._image_count = 0
         self._image_time = time.monotonic()
         self.subscription = self.create_subscription(
@@ -254,6 +240,8 @@ class RealSenseDepthNode(Node):
         self.get_logger().info(f"Waiting for depth on {self.topic}")
 
     def _callback(self, msg: ImageMsg) -> None:
+        received = time.monotonic_ns()
+        receive_unix = time.time_ns()
         try:
             raw = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             now = time.monotonic()
@@ -286,6 +274,11 @@ class RealSenseDepthNode(Node):
             self._latest = processed
             self._latest_display = np.ascontiguousarray(display)
             self._latest_time = time.monotonic()
+            self._latest_metadata = {
+                "receive_monotonic_ns": received, "receive_unix_ns": receive_unix,
+                "source_stamp_ns": int(msg.header.stamp.sec) * 1_000_000_000 + int(msg.header.stamp.nanosec),
+                "source_frame_id": msg.header.frame_id, "encoding": msg.encoding,
+            }
             self._frame_count += 1
             first = self._frame_count == 1
         self._first_frame.set()
@@ -306,6 +299,13 @@ class RealSenseDepthNode(Node):
                 else time.monotonic() - self._latest_time
             )
             return frame, age, self._frame_count
+
+    def latest_record(self):
+        """Atomically capture pixels, identity and source/receive timestamps."""
+        with self._lock:
+            frame = None if self._latest is None else self._latest.copy()
+            age = float("inf") if frame is None else time.monotonic() - self._latest_time
+            return frame, age, self._frame_count, dict(self._latest_metadata)
 
     def latest_display(
         self,
@@ -399,6 +399,22 @@ class ParkourPolicy:
             str(encoder_path), options, providers=providers
         )
         self.actor = ort.InferenceSession(str(actor_path), options, providers=providers)
+        self.runtime_metadata = {
+            "models": {name: {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+                       for name, path in (("encoder", encoder_path), ("actor", actor_path))},
+            "onnxruntime_version": ort.__version__,
+            "numpy_version": np.__version__, "opencv_version": cv2.__version__,
+            "deployment_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "preprocessing": {"remap": "nearest, border=max_m", "resize": "INTER_AREA",
+                              "median_kernel": 5, "gaussian_kernel": [3, 3], "gaussian_sigma": 1.0,
+                              "normalization": "(clip(depth,min_m,max_m)-min_m)/(max_m-min_m)",
+                              "input_units": {"16UC1/mono16": "mm", "32FC1": "m"}},
+            "encoder_providers": self.encoder.get_providers(),
+            "actor_providers": self.actor.get_providers(),
+            "session_options": {"intra_op_num_threads": options.intra_op_num_threads,
+                                "inter_op_num_threads": options.inter_op_num_threads},
+        }
+        self.record_inputs = bool(config.get("logging", {}).get("enabled", False))
         self.encoder_input = self.encoder.get_inputs()[0].name
         self.actor_input = self.actor.get_inputs()[0].name
         self._validate_contract()
@@ -427,6 +443,10 @@ class ParkourPolicy:
         self.depth_history: deque[np.ndarray] = deque(
             maxlen=self.depth_history_length
         )
+        self.depth_history_ids = deque(maxlen=self.depth_history_length)
+        self.depth_metadata = deque(maxlen=self.depth_history_length)
+        self.last_trace = None
+        self._last_depth_frame_id: int | None = None
         self.previous_action = np.zeros(NUM_MOTORS, dtype=np.float32)
         self._first = True
 
@@ -447,11 +467,16 @@ class ParkourPolicy:
             [np.concatenate(list(self.histories[key])) for key in PROPRIO_KEYS]
         ).astype(np.float32)
 
-    def _update_depth(self, depth_frame: np.ndarray) -> np.ndarray:
+    def _update_depth(self, depth_frame: np.ndarray, depth_frame_id: int, metadata=None) -> np.ndarray:
         expected = (self.encoder_height, self.encoder_width)
         if depth_frame.shape != expected:
             raise ValueError(f"Depth frame is {depth_frame.shape}, expected {expected}")
-        self.depth_history.append(np.asarray(depth_frame, dtype=np.float32).copy())
+        # Advance only for a new camera frame, never to fill policy-rate slots.
+        if depth_frame_id != self._last_depth_frame_id:
+            self.depth_history.append(np.asarray(depth_frame, dtype=np.float32).copy())
+            self.depth_history_ids.append(depth_frame_id)
+            self.depth_metadata.append(dict(metadata or {}))
+            self._last_depth_frame_id = depth_frame_id
         history = list(self.depth_history)
         if len(history) < self.depth_history_length:
             history = [history[0]] * (self.depth_history_length - len(history)) + history
@@ -466,6 +491,8 @@ class ParkourPolicy:
         quaternion_wxyz: np.ndarray,
         command: np.ndarray,
         depth_frame: np.ndarray,
+        depth_frame_id: int,
+        depth_metadata=None,
     ) -> np.ndarray:
         qpos = np.asarray(qpos_sdk, dtype=np.float32).reshape(NUM_MOTORS)
         qvel = np.asarray(qvel_sdk, dtype=np.float32).reshape(NUM_MOTORS)
@@ -482,7 +509,7 @@ class ParkourPolicy:
             "actions": self.previous_action.copy(),
         }
         proprio = self._update_proprio(values)
-        depth_bchw = self._update_depth(depth_frame)
+        depth_bchw = self._update_depth(depth_frame, depth_frame_id, depth_metadata)
         latent = self.encoder.run(None, {self.encoder_input: depth_bchw})[0]
         actor_input = np.concatenate([proprio, latent.reshape(-1)])[None, :].astype(
             np.float32
@@ -493,7 +520,6 @@ class ParkourPolicy:
         elapsed = now - self._obs_rate_start
 
         if elapsed >= 1.0:
-            print(f"obs output: {self._obs_count / elapsed:.1f} Hz")
             self._obs_count = 0
             self._obs_rate_start = now
 
@@ -511,6 +537,19 @@ class ParkourPolicy:
         # sim2sim applies the actor output directly.  Keep clipping configurable so
         # hardware deployments can opt into it without silently changing policy
         # behaviour when parity with sim2sim is required.
+        if self.record_inputs:
+            ids = list(self.depth_history_ids)
+            padded_ids = [ids[0]] * (self.depth_history_length - len(ids)) + ids
+            self.last_trace = {
+                "depth_history_frame_ids": padded_ids,
+                "encoder_frame_ids": [padded_ids[i] for i in self.depth_indices],
+                "command": command.tolist(),
+                "_tensors": {"encoder_input": depth_bchw.copy(), "actor_input": actor_input.copy(),
+                             "proprio_history": proprio.copy(), "latent": latent.copy(),
+                             "raw_action": action.copy()},
+                "_frames": [(i, f.copy(), dict(m)) for i, f, m in
+                            zip(self.depth_history_ids, self.depth_history, self.depth_metadata)],
+            }
         if self.action_clip is not None:
             action = np.clip(action, -self.action_clip, self.action_clip)
         action = action.astype(np.float32)
@@ -525,6 +564,9 @@ class RobotState:
     ang_vel: np.ndarray
     quaternion: np.ndarray
     timestamp: float
+    state_id: int = 0
+    tau_est: np.ndarray | None = None
+    foot_force: np.ndarray | None = None
 
 
 class ParkourDeployController:
@@ -549,6 +591,8 @@ class ParkourDeployController:
         self.depth_node = depth_node
         self.dt = float(control["dt"])
         self.decimation = int(control["decimation"])
+        if not math.isfinite(self.dt) or self.dt <= 0 or self.decimation < 1:
+            raise ValueError("control.dt must be positive and decimation at least 1")
         self.stand_duration = float(control["stand_duration"])
         self.sit_duration = float(control["sit_duration"])
         self.kps = _array(control, "kps", NUM_MOTORS)
@@ -593,10 +637,6 @@ class ParkourDeployController:
             )
 
         self.command_limits = _array(config["observations"], "command_limits", 3)
-        self.command_ramp_per_s = _array(
-            config["observations"], "command_ramp_per_s", 3
-        )
-        self.policy_dt = self.dt * self.decimation
         self.command = np.zeros(3, dtype=np.float32)
         self.target_command = np.zeros(3, dtype=np.float32)
         self.target_dof_pos = self.default_angles.copy()
@@ -606,7 +646,7 @@ class ParkourDeployController:
         self._last_limit_warning_time = 0.0
         self.mode = "damping"
         self.fault_reason = ""
-        self._mode_lock = threading.Lock()
+        self._mode_lock = threading.RLock()
         self._state_lock = threading.Lock()
         self._state_event = threading.Event()
         self._state: RobotState | None = None
@@ -616,12 +656,30 @@ class ParkourDeployController:
         self._counter = 0
         self._running = threading.Event()
         self._thread: threading.Thread | None = None
+        self._inference_thread: threading.Thread | None = None
+        self._inference_ready = threading.Event()
+        self._inference_request = None
+        self._inference_busy = False
+        self._mode_generation = 0
+        self._policy_step_counter = 0
+        self._target_policy_step_id = None
+        self._published_policy_step_id = None
+        self._published_mode = "damping"
+        self._state_counter = 0
+        self.output_hz = 0.0
 
         self.low_cmd = unitree_go_msg_dds__LowCmd_()
         self.crc = CRC()
         self._init_low_cmd()
         self.publisher = ChannelPublisher(str(dds["lowcmd_topic"]), LowCmd_)
         self.subscriber = ChannelSubscriber(str(dds["lowstate_topic"]), LowState_)
+        self._joint_acceleration = None
+        self.dds_health = DDSHealth(
+            self.low_state_stale_timeout, max(0.25, 5 * self.dt)
+        )
+        self.command_logger = (
+            LowCmdLogger(config, policy.runtime_metadata) if config.get("logging", {}).get("enabled", False) else None
+        )
 
 
     def _init_low_cmd(self) -> None:
@@ -647,6 +705,16 @@ class ParkourDeployController:
         print("LowState received; controller starts in damping mode.")
 
     def _low_state_callback(self, msg: LowState_) -> None:
+        try:
+            self._read_low_state(msg)
+        except Exception as exc:
+            self.dds_health.callback_failed(exc)
+            if self.dds_health.callback_errors == 1:
+                print(f"ERROR: LowState callback failed: {exc}", file=sys.stderr)
+
+    def _read_low_state(self, msg: LowState_) -> None:
+        received = time.monotonic()
+        self._state_counter += 1
         state = RobotState(
             qpos=np.array(
                 [msg.motor_state[i].q for i in range(NUM_MOTORS)],
@@ -658,11 +726,18 @@ class ParkourDeployController:
             ),
             ang_vel=np.asarray(msg.imu_state.gyroscope[:3], dtype=np.float32),
             quaternion=np.asarray(msg.imu_state.quaternion[:4], dtype=np.float32),
-            timestamp=time.monotonic(),
+            timestamp=received,
+            state_id=self._state_counter,
+            tau_est=(np.asarray([m.tau_est for m in msg.motor_state[:NUM_MOTORS]], dtype=np.float32)
+                     if all(hasattr(m, "tau_est") for m in msg.motor_state[:NUM_MOTORS]) else None),
+            foot_force=(np.asarray(msg.foot_force, dtype=np.float32).copy()
+                        if hasattr(msg, "foot_force") else None),
         )
         with self._state_lock:
+            self._joint_acceleration = estimate_acceleration(self._state, state)
             self._state = state
         self._state_event.set()
+        self.dds_health.received(state.timestamp)
 
     def _state_snapshot(self) -> RobotState:
         with self._state_lock:
@@ -674,23 +749,61 @@ class ParkourDeployController:
                 self._state.ang_vel.copy(),
                 self._state.quaternion.copy(),
                 self._state.timestamp,
+                self._state.state_id,
+                None if self._state.tau_est is None else self._state.tau_est.copy(),
+                None if self._state.foot_force is None else self._state.foot_force.copy(),
             )
 
     def start(self) -> None:
         self._running.set()
+        self._inference_thread = threading.Thread(
+            target=self._inference_loop, name="parkour-policy", daemon=True
+        )
+        self._inference_thread.start()
         self._thread = threading.Thread(
-            target=self._control_loop,
+            target=self._run_control_loop,
             name="parkour-lowcmd",
             daemon=False,
         )
         self._thread.start()
+        self.dds_health.start(
+            self._thread, self._health_details,
+            None if self.command_logger is None else self.command_logger.directory,
+        )
+
+    def _health_details(self) -> dict:
+        _, depth_age, frame_id = self.depth_node.latest()
+        return {
+            "mode": self.mode,
+            "fault_reason": self.fault_reason,
+            "inference_thread_alive": self._inference_thread is not None
+            and self._inference_thread.is_alive(),
+            "inference_busy": self._inference_busy,
+            "depth_age_s": depth_age if math.isfinite(depth_age) else None,
+            "depth_frame_id": frame_id,
+            "log_dropped": 0 if self.command_logger is None else self.command_logger.dropped,
+            "log_failed": 0 if self.command_logger is None else self.command_logger.failed,
+        }
+
+    def _run_control_loop(self) -> None:
+        try:
+            self._control_loop()
+        except Exception as exc:
+            self.dds_health.control_failed(exc)
+            self.output_hz = 0.0
+            self.set_damping(f"Control thread failed: {exc}")
+            traceback.print_exc()
 
     def shutdown(self) -> None:
         self.set_damping("shutdown")
         time.sleep(max(0.1, 3.0 * self.dt))
         self._running.clear()
+        self._inference_ready.set()
         if self._thread is not None:
             self._thread.join(timeout=2.0)
+        if self._inference_thread is not None:
+            self._inference_thread.join(timeout=2.0)
+        self.dds_health.close()
         try:
             self.subscriber.Close()
         except Exception:
@@ -699,6 +812,9 @@ class ParkourDeployController:
             self.publisher.Close()
         except Exception:
             pass
+        if self.command_logger is not None:
+            self.command_logger.event("shutdown")
+            self.command_logger.close()
 
     def set_command(self, vx: float, vy: float, wz: float) -> None:
         command = np.array([vx, vy, wz], dtype=np.float32)
@@ -715,14 +831,15 @@ class ParkourDeployController:
         state = self._state_snapshot()
         with self._mode_lock:
             self.mode = mode
+            self._mode_generation += 1
             self.fault_reason = ""
             self._transition_start = state.qpos.copy()
             self._transition_time = time.monotonic()
             self._transition_done = False
             self.command[:] = 0.0
             self.target_command[:] = 0.0
-        with self._policy_lock:
-            self.policy.reset()
+        if self.command_logger is not None:
+            self.command_logger.event("mode_change", mode=mode, generation=self._mode_generation)
         print(f"mode={mode}")
 
     def stand_up(self) -> None:
@@ -740,23 +857,28 @@ class ParkourDeployController:
                 raise RuntimeError(
                     "Enter 'stand' and wait for the transition to finish before 'move'"
                 )
-            with self._policy_lock:
-                self.policy.reset()
+            self._target_policy_step_id = None
             self.mode = "move"
+            self._mode_generation += 1
             self.fault_reason = ""
             self.command[:] = 0.0
             self.target_command[:] = 0.0
         self._counter = 0
+        if self.command_logger is not None:
+            self.command_logger.event("mode_change", mode="move", generation=self._mode_generation)
         print("mode=move; command reset to zero")
 
     def set_damping(self, reason: str = "operator request") -> None:
         with self._mode_lock:
             changed = self.mode != "damping" or self.fault_reason != reason
             self.mode = "damping"
+            self._mode_generation += 1
             self.fault_reason = reason
             self.command[:] = 0.0
             self.target_command[:] = 0.0
         if changed:
+            if self.command_logger is not None:
+                self.command_logger.event("mode_change", mode="damping", reason=reason, generation=self._mode_generation)
             print(f"mode=damping: {reason}")
 
     def status(self) -> str:
@@ -771,8 +893,14 @@ class ParkourDeployController:
             command = self.command.copy()
             target_command = self.target_command.copy()
             fault = self.fault_reason
+        health = self.dds_health.snapshot(
+            self._thread is not None and self._thread.is_alive()
+        )
         return (
-            f"mode={mode}, command={command.tolist()}, "
+            f"DDS={health['status']}, issues={health['issues']}, "
+            f"LowState={health['lowstate_hz']:.1f}Hz, "
+            f"write_failures={health['write_failures']}, "
+            f"mode={mode}, LowCmd={self.output_hz:.1f}Hz, command={command.tolist()}, "
             f"target_command={target_command.tolist()}, "
             f"max_abs_action={np.max(np.abs(self.last_action_policy)):.3f}, "
             f"joint_limit_clips={np.flatnonzero(self.last_joint_limit_clips).tolist()}, "
@@ -836,6 +964,8 @@ class ParkourDeployController:
         state = self._state_snapshot()
         with self._mode_lock:
             mode = self.mode
+            self._published_mode = mode
+            self._published_policy_step_id = None
 
         if mode == "damping":
             self._apply_damping(state.qpos)
@@ -863,47 +993,101 @@ class ParkourDeployController:
         if mode != "move":
             raise RuntimeError(f"Unknown control mode: {mode}")
 
-        if self._counter % self.decimation == 0:
-            with self._mode_lock:
-                self.command = ramp_command(
-                    self.command,
-                    self.target_command,
-                    self.command_ramp_per_s,
-                    self.policy_dt,
-                )
-                command = self.command.copy()
-            depth_frame, depth_age, _ = self.depth_node.latest()
-            if depth_frame is None or depth_age > self.depth_stale_timeout:
-                raise RuntimeError(f"Depth stale for {depth_age:.3f}s")
-            with self._policy_lock:
-                action_policy = self.policy.infer(
-                    state.qpos,
-                    state.qvel,
-                    state.ang_vel,
-                    state.quaternion,
-                    command,
-                    depth_frame,
-                )
-            action_sdk = action_policy[self.policy_to_sdk]
-            target = self.default_angles + action_sdk * self.action_scale
-            self.last_action_policy = action_policy.copy()
-            self.last_requested_target = target.copy()
-            self.last_joint_limit_clips = (target < self.target_lower) | (
-                target > self.target_upper
+        # Check freshness even when replaying a target during slow inference.
+        depth_frame, depth_age, depth_frame_id, depth_metadata = self.depth_node.latest_record()
+        if depth_frame is None or depth_age > self.depth_stale_timeout:
+            raise RuntimeError(f"Depth stale for {depth_age:.3f}s")
+        if not self._inference_busy and self._counter % self.decimation == 0:
+            self.command = self.target_command.copy()
+            self._inference_request = (
+                self._mode_generation, state, self.command.copy(), depth_frame,
+                depth_frame_id, depth_metadata,
             )
-            self.target_dof_pos = np.clip(
-                target, self.target_lower, self.target_upper
-            ).astype(np.float32)
-            now = time.monotonic()
-            if (
-                np.any(self.last_joint_limit_clips)
-                and now - self._last_limit_warning_time >= 1.0
-            ):
-                clipped = np.flatnonzero(self.last_joint_limit_clips).tolist()
-                print(f"[WARN] Hardware joint limits clipped SDK joints {clipped}")
-                self._last_limit_warning_time = now
+            self._inference_busy = True
+            self._inference_ready.set()
         self._apply_position(self.target_dof_pos)
+        self._published_policy_step_id = self._target_policy_step_id
         self._counter += 1
+
+    def _inference_loop(self) -> None:
+        """Compute one action at a time without blocking the DDS send loop."""
+        policy_generation = None
+        while self._running.is_set():
+            self._inference_ready.wait()
+            if not self._running.is_set():
+                return
+            with self._mode_lock:
+                self._inference_ready.clear()
+                request = self._inference_request
+                self._inference_request = None
+            if request is None:
+                continue
+            generation, state, command, depth_frame, depth_frame_id, depth_metadata = request
+            step_id = self._policy_step_counter
+            self._policy_step_counter += 1
+            started = time.monotonic_ns()
+            try:
+                with self._policy_lock:
+                    # Discard requests queued before a mode change.
+                    if generation != self._mode_generation:
+                        if self.command_logger is not None:
+                            self.command_logger.event("policy_discarded", policy_step_id=step_id, reason="mode changed before inference")
+                        continue
+                    if policy_generation != generation:
+                        self.policy.reset()
+                        policy_generation = generation
+                        if self.command_logger is not None:
+                            self.command_logger.event("policy_reset", policy_step_id=step_id, generation=generation)
+                    action_policy = self.policy.infer(
+                        state.qpos, state.qvel, state.ang_vel,
+                        state.quaternion, command, depth_frame, depth_frame_id, depth_metadata,
+                    )
+                ended = time.monotonic_ns()
+                target = (
+                    self.default_angles
+                    + action_policy[self.policy_to_sdk] * self.action_scale
+                )
+                with self._mode_lock:
+                    accepted = (self._running.is_set() and self.mode == "move"
+                                and generation == self._mode_generation)
+                    if self.command_logger is not None:
+                        trace = self.policy.last_trace
+                        self.command_logger.submit({
+                            "_stream": "policy", "policy_step_id": step_id,
+                            "generation": generation, "accepted": accepted,
+                            "inference_start_monotonic_ns": started,
+                            "inference_end_monotonic_ns": ended,
+                            "input_state": state_record(state),
+                            "action": action_policy.tolist(), "q_requested": target.tolist(),
+                            "q_target": np.clip(target, self.target_lower, self.target_upper).tolist(),
+                            **trace,
+                        })
+                    if not accepted:
+                        continue
+                    self._target_policy_step_id = step_id
+                    self.last_action_policy = action_policy.copy()
+                    self.last_requested_target = target.copy()
+                    self.last_joint_limit_clips = (target < self.target_lower) | (
+                        target > self.target_upper
+                    )
+                    self.target_dof_pos = np.clip(
+                        target, self.target_lower, self.target_upper
+                    ).astype(np.float32)
+                    now = time.monotonic()
+                    if (np.any(self.last_joint_limit_clips)
+                            and now - self._last_limit_warning_time >= 1.0):
+                        clipped = np.flatnonzero(self.last_joint_limit_clips).tolist()
+                        print(f"[WARN] Hardware joint limits clipped SDK joints {clipped}")
+                        self._last_limit_warning_time = now
+            except Exception as exc:
+                if self.command_logger is not None:
+                    self.command_logger.event("policy_error", policy_step_id=step_id, error=str(exc))
+                with self._mode_lock:
+                    if generation == self._mode_generation:
+                        self.set_damping(str(exc))
+            finally:
+                with self._mode_lock:
+                    self._inference_busy = False
 
     def _control_loop(self) -> None:
         self._cmd_count = 0
@@ -912,23 +1096,58 @@ class ParkourDeployController:
 
         while self._running.is_set():
             try:
-                self._control_tick()
+                with self._mode_lock:
+                    self._control_tick()
             except Exception as exc:
                 self.set_damping(str(exc))
+                self._published_mode = "damping"
+                self._published_policy_step_id = None
                 try:
                     self._apply_damping(self._state_snapshot().qpos)
                 except Exception:
                     pass
 
             self.low_cmd.crc = self.crc.Crc(self.low_cmd)
-            self.publisher.Write(self.low_cmd)
+            record = None
+            if self.command_logger is not None:
+                with self._state_lock:
+                    log_state = self._state
+                record = self.command_logger.snapshot(
+                    self.low_cmd, log_state,
+                )
+                record["timestamp_unix_ns"] = time.time_ns()
+                record["publish_monotonic_ns"] = time.monotonic_ns()
+                record["control_sequence"] = self._cmd_count
+                record["mode"] = self._published_mode
+                record["policy_step_id"] = self._published_policy_step_id
+            try:
+                self.dds_health.write_started()
+                result = self.publisher.Write(self.low_cmd)
+                write_error = "SDK Write returned False" if result is not None and not result else None
+                self.dds_health.write_finished(result, write_error)
+                if write_error is not None:
+                    self.set_damping(write_error)
+                if record is not None:
+                    # None means the SDK did not return a success indicator.
+                    record["write_result"] = None if result is None else bool(result)
+                    record["write_error"] = write_error
+            except Exception as exc:
+                self.dds_health.write_finished(False, str(exc))
+                self.set_damping(f"DDS write exception: {exc}")
+                if record is not None:
+                    record["write_result"] = False
+                    record["write_error"] = str(exc)
+            finally:
+                if record is not None:
+                    record["publish_end_monotonic_ns"] = time.monotonic_ns()
+                    self.command_logger.submit(record)
 
             self._cmd_count += 1
             now = time.monotonic()
             elapsed = now - self._cmd_rate_start
 
             if elapsed >= 1.0:
-                #print(f"LowCmd output: {self._cmd_count / elapsed:.1f} Hz")
+                self.output_hz = self._cmd_count / elapsed
                 self._cmd_count = 0
                 self._cmd_rate_start = now
 
@@ -937,9 +1156,10 @@ class ParkourDeployController:
 
             if remaining > 0.0:
                 time.sleep(remaining)
-            elif remaining < -self.dt:
-                # Avoid attempting a large burst of catch-up iterations.
-                next_tick = time.perf_counter()
+            else:
+                # Skip missed slots; do not send a burst to make up lost time.
+                next_tick += (math.floor(-remaining / self.dt) + 1) * self.dt
+                time.sleep(max(0.0, next_tick - time.perf_counter()))
 
 
 def run_check(config_path: Path, config: dict[str, Any]) -> None:
@@ -959,6 +1179,7 @@ def run_check(config_path: Path, config: dict[str, Any]) -> None:
         np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32),
         np.zeros(3, dtype=np.float32),
         depth,
+        1,
     )
     print(f"config: {config_path}")
     print(f"depth frame: shape={depth.shape}, range=({depth.min():.3f}, {depth.max():.3f})")
@@ -1625,7 +1846,7 @@ class TkParkourControlWindow:
             policy = (
                 (1.0 - np.clip(processed, 0.0, 1.0)) * 255.0
             ).astype(np.uint8)
-            self._policy_photo = self._photo(policy, (384, 90))
+            self._policy_photo = self._photo(policy, (384,90)) #384,90
             self.policy_image_label.configure(image=self._policy_photo)
         self.root.after(33, self._refresh)
 
@@ -1772,6 +1993,7 @@ def main() -> int:
             rclpy.shutdown()
         ros_thread.join(timeout=2.0)
     return 0
+
 
 
 if __name__ == "__main__":

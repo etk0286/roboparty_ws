@@ -104,6 +104,26 @@ ros2 launch nvblox_examples_bringup realsense_example.launch.py
 ```
 
 
+
+
+offlime docker
+```bash
+
+# 主機端：使用本機映像，跳過遠端檢查與建置
+export ISAAC_ROS_WS=/mnt/nova_ssd/workspaces/isaac_ros-dev
+
+cd "$ISAAC_ROS_WS"
+./src/isaac_ros_common/scripts/run_dev.sh -b -d "$ISAAC_ROS_WS"
+
+
+cd /workspaces/isaac_ros-dev
+source install/setup.bash
+ros2 launch nvblox_examples_bringup realsense_example.launch.py
+
+
+
+
+```
 ```bash
 
 conda activate roboparty_full

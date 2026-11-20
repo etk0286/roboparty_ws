@@ -1,11 +1,12 @@
 policy:
-  depth_encoder_path: exported/2026-08-25_17-32-06_amp_parkour_add_terrain_good_at_stage/exported/0-depth_encoder.onnx
-  actor_path: exported/2026-08-25_17-32-06_amp_parkour_add_terrain_good_at_stage/exported/actor.onnx
+  depth_encoder_path: exported/10_23/0-depth_encoder.onnx
+  actor_path: exported/10_23/actor.onnx
   providers: [CPUExecutionProvider]
 
 control:
-  dt: 0.005
-  decimation: 4
+  # Send LowCmd at 50 Hz; reuse the latest target while inference is busy.
+  dt: 0.02
+  decimation: 1
   stand_duration: 3.0
   sit_duration: 2.0
   kps: [40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40]
@@ -23,9 +24,7 @@ observations:
   angular_velocity_scale: 0.25
   joint_velocity_scale: 0.05
   command_scale: [1.0, 1.0, 1.0]
-  command_limits: [0.35, 0.0, 1.0]
-  # Maximum command change per second: [vx, vy, yaw]. Matches sim2sim.
-  command_ramp_per_s: [2.0, 2.0, 3.0]
+  command_limits: [0.7, 0.0, 1.0]
 
 depth:
   # Metric depth used by preprocessing and the ONNX policy.
@@ -60,11 +59,17 @@ safety:
   # remain active as the final safety boundary.
   action_clip: null
   max_target_delta: null
-  joint_lower: [-0.611, -2.583, -2.792, -0.436, -2.583, -2.792, -0.611, -2.286, -2.809, -0.436, -2.286, -2.809]
-  joint_upper: [0.436, 2.286, 2.809, 0.611, 2.286, 2.809, 0.436, 2.583, 2.792, 0.611, 2.583, 2.792]
+  joint_lower: [-1.0472, -2.583, -2.792, -1.0472, -2.583, -2.792, -1.0472, -2.583, -2.792, -1.0472, -2.583, -2.792]
+  joint_upper: [1.0472, 2.286, 2.809, 1.0472, 2.286, 2.809, 1.0472, 2.286, 2.809, 1.0472, 2.286, 2.809]
 
 dds:
   domain: 1
   interface: eno1
   lowcmd_topic: rt/lowcmd
   lowstate_topic: rt/lowstate
+
+logging:
+  enabled: true
+  # Relative to the directory where the script is launched.
+  directory: /mnt/nova_ssd/roboparty/record/lowcmd
+  queue_size: 1000
